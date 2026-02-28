@@ -1,132 +1,87 @@
-# -------- PLAYFAIR CIPHER --------
+ALPHABET = "ABCDEFGHIKLMNOPQRSTUVWXYZ"  # J merged with I
 
-ALPHABET = "ABCDEFGHIKLMNOPQRSTUVWXYZ"  # J is merged with I
 
-# Step 1: Generate Key Matrix
 def generate_key_matrix(key):
-    key = key.upper().replace("J", "I")
-    matrix = []
-
-    # Add key letters without duplicates
-    for char in key:
-        if char not in matrix and char in ALPHABET:
-            matrix.append(char)
-
-    # Add remaining alphabet letters
-    for char in ALPHABET:
-        if char not in matrix:
-            matrix.append(char)
-
-    # Convert into 5x5 matrix
-    return [matrix[i:i+5] for i in range(0, 25, 5)]
+    chars = []
+    for ch in (key.upper().replace("J", "I") + ALPHABET):
+        if ch in ALPHABET and ch not in chars:
+            chars.append(ch)
+    return [chars[i:i + 5] for i in range(0, 25, 5)]
 
 
-# Step 2 & 3: Prepare plaintext
 def prepare_text(text):
-    text = text.upper().replace("J", "I")
-    text = "".join([c for c in text if c in ALPHABET])
+    text = "".join(ch for ch in text.upper().replace("J", "I") if ch in ALPHABET)
+    out, i = "", 0
 
-    prepared = ""
-    i = 0
     while i < len(text):
         a = text[i]
-        b = ""
-
-        if i + 1 < len(text):
-            b = text[i+1]
-        else:
-            b = "X"
-
+        b = text[i + 1] if i + 1 < len(text) else "X"
         if a == b:
-            prepared += a + "X"
+            out += a + "X"
             i += 1
         else:
-            prepared += a + b
+            out += a + b
             i += 2
 
-    if len(prepared) % 2 != 0:
-        prepared += "X"
-
-    return prepared
+    return out if len(out) % 2 == 0 else out + "X"
 
 
-# Helper: Find position in matrix
-def find_position(matrix, char):
-    for row in range(5):
-        for col in range(5):
-            if matrix[row][col] == char:
-                return row, col
+def find_position(matrix, ch):
+    for r, row in enumerate(matrix):
+        if ch in row:
+            return r, row.index(ch)
 
 
-# Step 5: Encrypt
 def encrypt(plain_text, matrix):
-    cipher_text = ""
-
+    out = ""
     for i in range(0, len(plain_text), 2):
-        a, b = plain_text[i], plain_text[i+1]
-        row1, col1 = find_position(matrix, a)
-        row2, col2 = find_position(matrix, b)
+        a, b = plain_text[i], plain_text[i + 1]
+        r1, c1 = find_position(matrix, a)
+        r2, c2 = find_position(matrix, b)
 
-        # Same row
-        if row1 == row2:
-            cipher_text += matrix[row1][(col1 + 1) % 5]
-            cipher_text += matrix[row2][(col2 + 1) % 5]
-
-        # Same column
-        elif col1 == col2:
-            cipher_text += matrix[(row1 + 1) % 5][col1]
-            cipher_text += matrix[(row2 + 1) % 5][col2]
-
-        # Rectangle rule
+        if r1 == r2:
+            out += matrix[r1][(c1 + 1) % 5] + matrix[r2][(c2 + 1) % 5]
+        elif c1 == c2:
+            out += matrix[(r1 + 1) % 5][c1] + matrix[(r2 + 1) % 5][c2]
         else:
-            cipher_text += matrix[row1][col2]
-            cipher_text += matrix[row2][col1]
+            out += matrix[r1][c2] + matrix[r2][c1]
 
-    return cipher_text
+    return out
 
 
-# Step 6: Decrypt
 def decrypt(cipher_text, matrix):
-    plain_text = ""
-
+    out = ""
     for i in range(0, len(cipher_text), 2):
-        a, b = cipher_text[i], cipher_text[i+1]
-        row1, col1 = find_position(matrix, a)
-        row2, col2 = find_position(matrix, b)
+        a, b = cipher_text[i], cipher_text[i + 1]
+        r1, c1 = find_position(matrix, a)
+        r2, c2 = find_position(matrix, b)
 
-        # Same row
-        if row1 == row2:
-            plain_text += matrix[row1][(col1 - 1) % 5]
-            plain_text += matrix[row2][(col2 - 1) % 5]
-
-        # Same column
-        elif col1 == col2:
-            plain_text += matrix[(row1 - 1) % 5][col1]
-            plain_text += matrix[(row2 - 1) % 5][col2]
-
-        # Rectangle rule
+        if r1 == r2:
+            out += matrix[r1][(c1 - 1) % 5] + matrix[r2][(c2 - 1) % 5]
+        elif c1 == c2:
+            out += matrix[(r1 - 1) % 5][c1] + matrix[(r2 - 1) % 5][c2]
         else:
-            plain_text += matrix[row1][col2]
-            plain_text += matrix[row2][col1]
+            out += matrix[r1][c2] + matrix[r2][c1]
 
-    return plain_text
+    return out
 
 
-# -------- MAIN PROGRAM --------
-key = input("Enter key: ")
-matrix = generate_key_matrix(key)
+def main():
+    key = input("Enter key: ")
+    matrix = generate_key_matrix(key)
 
-print("\nKey Matrix:")
-for row in matrix:
-    print(row)
+    print("\nKey Matrix:")
+    for row in matrix:
+        print(row)
 
-plain_text = input("\nEnter plain text: ")
-prepared_text = prepare_text(plain_text)
+    plain = input("\nEnter plain text: ")
+    prepared = prepare_text(plain)
+    cipher = encrypt(prepared, matrix)
+    decoded = decrypt(cipher, matrix)
 
-print("Prepared Text:", prepared_text)
+    print("Prepared Text:", prepared)
+    print("Encrypted Text:", cipher)
+    print("Decrypted Text:", decoded)
 
-cipher = encrypt(prepared_text, matrix)
-print("Encrypted Text:", cipher)
 
-decrypted = decrypt(cipher, matrix)
-print("Decrypted Text:", decrypted)
+main()
